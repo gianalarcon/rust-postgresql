@@ -1,2 +1,1 @@
-# rust-postgres
 # rust-postgresql
