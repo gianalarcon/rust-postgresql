@@ -4,13 +4,14 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 pub mod model;
-pub mod statements;
+pub mod utilities;
 #[macro_use]
 extern crate serde_derive;
+use std::env;
 
 fn main() -> Result<(), Error> {
     set_database()?;
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
 
     for stream in listener.incoming() {
         match stream {
@@ -22,15 +23,12 @@ fn main() -> Result<(), Error> {
 }
 
 fn connect_to_database() -> Result<Client, postgres::Error> {
-    let client = Client::connect(
-        "postgresql://gianm:system14@localhost:5432/rust_api_database",
-        NoTls,
-    )?;
+    let client = Client::connect(utilities::DB_URL, NoTls)?;
     Ok(client)
 }
 fn set_database() -> Result<(), Error> {
     let mut client = connect_to_database()?;
-    let query = statements::CREATE_DB;
+    let query = utilities::CREATE_DB;
     client.batch_execute(query)?;
     Ok(())
 }
@@ -88,7 +86,7 @@ fn update_one(request: &str) -> Result<(), Error> {
     let id = id.parse::<i32>().unwrap();
 
     let mut client = connect_to_database()?;
-    let query = statements::UPDATE_USER;
+    let query = utilities::UPDATE_USER;
     client.execute(query, &[&id, &user.username, &user.password, &user.email])?;
     Ok(())
 }
@@ -112,7 +110,7 @@ fn delete_one(request: &str) -> Result<(), Error> {
     let id = id.parse::<i32>().unwrap();
 
     let mut client = connect_to_database()?;
-    let query = statements::DELETE_USER;
+    let query = utilities::DELETE_USER;
     client.execute(query, &[&id])?;
     Ok(())
 }
@@ -120,7 +118,7 @@ fn handle_get_all_request() -> Result<(String, String), Error> {
     let mut users: Vec<model::User> = Vec::new();
 
     let mut client = connect_to_database()?;
-    let query = statements::SELECT_ALL_USERS;
+    let query = utilities::SELECT_ALL_USERS;
     for row in client.query(query, &[]).unwrap() {
         let username = row.get(0);
         let password = row.get(1);
@@ -152,7 +150,7 @@ fn create_one(request_body: &str) -> Result<(), Error> {
     let user: model::User = serde_json::from_str(request_body).unwrap();
     let mut client = connect_to_database()?;
 
-    let query = statements::INSERT_USER;
+    let query = utilities::INSERT_USER;
     client.execute(query, &[&user.username, &user.password, &user.email])?;
     Ok(())
 }
